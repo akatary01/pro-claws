@@ -1,0 +1,23 @@
+[
+    {
+        "id": "e075a58a-258a-4d13-b83d-1b16c424b93e",
+        "location": {
+            "street": "2301 flatbush ave",
+            "city": "brooklyn",
+            "state": "ny",
+            "zip": "11234"
+        },
+        "machines": [
+            {
+                "name": "8949 Bay Pkwy (BK) 22",
+                "id": 4434331025192579,
+                "deviceId": 4434331025192579,
+                "vpos": 4434331025192579
+            }
+        ],
+        "firstServiceDate": "2024-06-01T00:00:00",
+        "phoneNumber": 7182664433,
+        "email": "",
+        "sendReports": true
+    }
+]
