@@ -1,4 +1,4 @@
 *.jar
 target/
 .vscode
-/home/akatary/pro_claws/api/src/main/java/com/proclaws/assets/routes.json
+api/src/main/java/com/proclaws/assets/routes.json
