@@ -1,4 +1,4 @@
-package com.proklaws;
+package com.proclaws;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -8,9 +8,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import static com.proklaws.Utils.ROUTES_FILE_PATH;
-import static com.proklaws.Utils.filterJsonArray;
-import static com.proklaws.Utils.safeCall;
+import static com.proclaws.Utils.ROUTES_FILE_PATH;
+import static com.proclaws.Utils.filterJsonArray;
+import static com.proclaws.Utils.safeCall;
 
 import io.javalin.Javalin;
 import io.javalin.http.Context;

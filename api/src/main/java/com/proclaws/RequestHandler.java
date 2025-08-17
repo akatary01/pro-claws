@@ -1,4 +1,4 @@
-package com.proklaws;
+package com.proclaws;
 
 import java.util.ArrayList;
 import java.util.HashMap;

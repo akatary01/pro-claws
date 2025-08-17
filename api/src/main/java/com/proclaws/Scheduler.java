@@ -1,4 +1,4 @@
-package com.proklaws;
+package com.proclaws;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
