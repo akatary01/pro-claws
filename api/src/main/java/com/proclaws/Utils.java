@@ -8,11 +8,12 @@ import org.json.JSONObject;
 
 public class Utils {
     /** Constants **/
-    public static final String BASE_DIR = System.getProperty("user.dir");
+    public static final String BASE_DIR = System.getProperty("user.dir") + "/api";
     /** Dirs **/
     public static final String ASSETS_DIR = BASE_DIR + "/assets";
     /** Files **/
     public static final String ROUTES_FILE_PATH = ASSETS_DIR + "/routes.json";
+    public static final String CONFIG_FILE_PATH = ASSETS_DIR + "/config.json";
 
     /** Nayax **/
     public static final class Nayax {

@@ -15,8 +15,14 @@ class Scheduler {
 
     /** Schedules a task to run at a fixed rate on interval [start, end]. */
     public ScheduledFuture<?> scheduleTask(UUID id, Runnable action, LocalDateTime start, long period, TimeUnit unit) {
-        final long delay = java.time.Duration.between(LocalDateTime.now(), start).toMillis();
-        
+        long duration = java.time.Duration.between(LocalDateTime.now(), start).toMillis();
+        // assumption: start immediately if start time is in the past
+        if (duration < 0) { 
+            System.out.println("start time is in the past, starting immediately.");
+            duration = 0; 
+        }
+        long delay = unit.convert(duration, TimeUnit.MILLISECONDS);
+
         final ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(action, delay, period, unit);
         tasks.put(id, task);
         return task;

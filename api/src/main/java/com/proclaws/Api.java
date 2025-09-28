@@ -1,5 +1,7 @@
 package com.proclaws;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -32,7 +34,7 @@ public class Api {
     private static void scheduleCommisionReports(Context ctx) {
         scheduler.cancelAllTasks(0, MILLISECONDS);
 
-        final JSONArray routes = filterJsonArray(safeCall(() -> new JSONArray(ROUTES_FILE_PATH)), "sendReports", true);
+        final JSONArray routes = filterJsonArray(safeCall(() -> new JSONArray(Files.readString(Paths.get(ROUTES_FILE_PATH)))), "sendReports", true);
         for (int i = 0; i < routes.length(); i++) {
             final int idx = i;
             final JSONObject route = safeCall(() -> routes.getJSONObject(idx));
@@ -42,6 +44,10 @@ public class Api {
 
             // TODO: Implement the actual report generation logic
             scheduler.scheduleTask(id, () -> {
+                final String routeId = safeCall(() -> route.getString("id"));
+                System.out.println("generating report for route " + routeId + " at " + LocalDateTime.now());
+                
+                // fetch sales data for all machines in the route
                 final ArrayList<MachineSales> sales = Sales.getRouteReport(route);
                 final double totalCash = sales.stream().mapToDouble(ms -> ms.cashSales).sum();
                 final double totalCashless = sales.stream().mapToDouble(ms -> ms.cashlessSales).sum();
@@ -52,10 +58,18 @@ public class Api {
                 final double preCommissionRevenue = totalCash + totalCashless + totalSurplussFee;
                 final double postCommisionRevenue = preCommissionRevenue - commission;
 
-                // TODO: use sales info to generate commission report
-                final String salesReport = "";
+                // TODO: generate report 
+                final String subject = "Sales Report for Route " + routeId;
+                final String salesReport = "Send me the login info Mohamed";
+                
+                // send report via email
                 safeCall(() -> {
-                    Email.send(safeCall(() -> route.getString("email")), "Sales Report", salesReport, new byte[0]);
+                    final String email = safeCall(() -> route.getString("email")); 
+                    if (email == null || email.isEmpty()) {
+                        System.out.println(String.format("skipping route %s: no email provided", routeId));
+                        return null;
+                    }
+                    Email.send(email, subject, salesReport, new byte[0]);
                     return null;
                 });
             }, start, 7, DAYS);
