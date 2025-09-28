@@ -15,21 +15,22 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 
 public class RequestHandler {
-    CloseableHttpClient httpclient = HttpClients.createDefault();
+    static CloseableHttpClient httpclient = HttpClients.createDefault();
 
-    public CloseableHttpResponse post(String uri, HashMap<String, ?> params) throws Exception {
+    public static CloseableHttpResponse post(String uri, HashMap<String, ?> params, HashMap<String, String> headers) throws Exception {
         final HttpPost request = new HttpPost(uri);
-        
+        headers.forEach((key, value) -> request.addHeader(key, value));
         request.setEntity(new UrlEncodedFormEntity(createParamsList(params), "UTF-8"));
         return httpclient.execute(request);
     }
 
-    public CloseableHttpResponse get(String uri, HashMap<String, ?> params) throws Exception {
+    public static CloseableHttpResponse get(String uri, HashMap<String, ?> params, HashMap<String, String> headers) throws Exception {
         final HttpGet request = new HttpGet(new URIBuilder(uri).addParameters(createParamsList(params)).build());
+        headers.forEach((key, value) -> request.addHeader(key, value));
         return httpclient.execute(request);
     }
 
-    private List<NameValuePair> createParamsList(HashMap<String, ?> params) {
+    private static List<NameValuePair> createParamsList(HashMap<String, ?> params) {
         final List<NameValuePair> paramsList = new ArrayList<>();
         params.forEach((key, value) -> paramsList.add(new BasicNameValuePair(key, value.toString())));
         return paramsList;

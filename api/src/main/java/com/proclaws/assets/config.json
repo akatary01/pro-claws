@@ -1,0 +1,8 @@
+{
+    "smtp": {
+        "from": "akatary23@gmail.com",
+        "smtpPort": 587,
+        "smtpServer": "smtp.gmail.com",
+        "smtpPassword": "zswb vmgi gewk kusr"
+    }
+}

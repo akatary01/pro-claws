@@ -1,6 +1,7 @@
 package com.proclaws;
 
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -13,9 +14,19 @@ public class Utils {
     /** Files **/
     public static final String ROUTES_FILE_PATH = ASSETS_DIR + "/routes.json";
 
+    /** Nayax **/
+    public static final class Nayax {
+        public static final String API_BASE_URL = "https://api.nayax.com/v2";
+        public static final String NAYAX_MACHINES = API_BASE_URL + "/machines";
+        // Lambda that takes a machineId and returns URL string
+        public static final Function<String, String> NAYAX_MACHINES_LAST_SALES =
+            (machineId) -> NAYAX_MACHINES + "/" + machineId + "/lastSales";
+        public static final String CREDIT_CARD = "credit card";
+    }
+
     /** Functions **/ 
     public static <T> T safeCall(Callable<T> action) {
-        try { action.call(); } catch (Exception e) {}
+        try { return action.call(); } catch (Exception e) {}
         return null;
     }
     
