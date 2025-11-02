@@ -57,10 +57,22 @@ public class Api {
                 
                 final double preCommissionRevenue = totalCash + totalCashless + totalSurplussFee;
                 final double postCommisionRevenue = preCommissionRevenue - commission;
+                
+                System.out.println(String.format(
+                """
+                Route %s Report:
+                    Total Cash Sales: $%.2f
+                    Total Cashless Sales: $%.2f
+                    Total Surpluss Fees: $%.2f
+                    Commission: $%.2f
+                    Pre-Commission Revenue: $%.2f
+                    Post-Commission Revenue: $%.2f""",
+                    routeId, totalCash, totalCashless, totalSurplussFee, commission, preCommissionRevenue, postCommisionRevenue));
+                System.out.println("sales " + sales);
 
                 // TODO: generate report 
                 final String subject = "Sales Report for Route " + routeId;
-                final String salesReport = "Send me the login info Mohamed";
+                final String salesReport = "Yusuf is small.";
                 
                 // send report via email
                 safeCall(() -> {
