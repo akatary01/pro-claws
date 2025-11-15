@@ -40,15 +40,16 @@ public class Sales {
                 
                 switch (salesData.getStatusLine().getStatusCode()) {
                     case 200: 
+                        System.out.println("successfully fetched sales data for machine " + machineId);
                         final MachineSales machineSales = new MachineSales();
-                        final JSONArray salesJson = new JSONArray(EntityUtils.toString(salesData.getEntity()));
+                        final JSONArray salesJson = new JSONArray(EntityUtils.toString(salesData.getEntity(), "UTF-8"));
 
                         machineSales.id = machineId;
                         for (int j = 0; j < salesJson.length(); j++) {
                             final int jdx = j;
                             final JSONObject sale = safeCall(() -> salesJson.getJSONObject(jdx));
                             final String paymentMethod = safeCall(() -> sale.getString("PaymentMethod"));
-            
+                            
                             if (paymentMethod.equals(Nayax.CREDIT_CARD)) {
                                 machineSales.cashSales += safeCall(() -> sale.getInt("SettlementValue"));
                             } else {
@@ -65,10 +66,13 @@ public class Sales {
                         System.out.println("received status code " + salesData.getStatusLine().getStatusCode() + " from Nayax API");
                 }
             } catch (IOException e) {
+                System.out.println("failed to fetch sales data for machine: " + machineId);
                 e.printStackTrace();
             } catch (URISyntaxException e) {
+                System.out.println("syntax error while fetching sales data for machine: " + machineId);
                 e.printStackTrace();
             } catch (JSONException e) {
+                System.out.println("failed to parse sales data for machine: " + machineId);
                 e.printStackTrace();
             }
 
