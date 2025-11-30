@@ -1,3 +1,9 @@
 [submodule "api"]
 	path = api
 	url = https://github.com/pro-claws/api.git
+[submodule "backend"]
+	path = backend
+	url = https://github.com/pro-claws/backend.git
+[submodule "vendistri"]
+	path = vendistri
+	url = https://github.com/pro-claws/vendistri.git
