@@ -7,3 +7,6 @@
 [submodule "vendistri"]
 	path = vendistri
 	url = https://github.com/pro-claws/vendistri.git
+[submodule "home_page"]
+	path = home_page
+	url = https://github.com/pro-claws/home-page.git
