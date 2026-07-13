@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Vendistri" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/vendistri_splash_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/vendistri_splash_background</item>
+        <item name="android:windowSplashScreenBackground">@color/vendistri_splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_v_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/vendistri_splash_background</item>
+    </style>
+</resources>
