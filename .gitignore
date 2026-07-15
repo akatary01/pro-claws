@@ -1,3 +1,4 @@
 *.jar
 .vscode
 backend/run/django-cache/
+app-android/
