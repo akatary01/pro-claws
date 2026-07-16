@@ -1,4 +1,6 @@
 *.jar
+.DS_Store
+backend.zip
 .vscode
 backend/run/django-cache/
 app-android/

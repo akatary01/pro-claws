@@ -1,0 +1,175 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Vendistri Nayax SQS transaction delivery relay.
+
+Parameters:
+  QueueName:
+    Type: String
+    Default: vendistri-nayax-transactions
+    Description: Unique SQS queue name for this Nayax telemetry connection.
+  VendistriEndpoint:
+    Type: String
+    Default: https://secure.vendistri.com/vendistri/be/telemetry/transport/nayax/sqs
+    Description: Vendistri Nayax SQS transport endpoint.
+  VendistriTransportUsername:
+    Type: String
+    Description: Vendistri telemetry provider ID used as Basic Auth username.
+  VendistriTransportPassword:
+    Type: String
+    NoEcho: true
+    Description: Vendistri transport secret/API key used as Basic Auth password.
+
+Resources:
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${QueueName}-dlq"
+      MessageRetentionPeriod: 1209600
+
+  TransactionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref QueueName
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 345600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 5
+
+  NayaxSendUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${QueueName}-nayax-send"
+      Policies:
+        - PolicyName: nayax-send-to-vendistri-queue
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                Resource: !GetAtt TransactionQueue.Arn
+
+  NayaxSendAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref NayaxSendUser
+
+  RelayFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: relay-read-queue
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:ChangeMessageVisibility
+                Resource: !GetAtt TransactionQueue.Arn
+
+  RelayFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${QueueName}-relay"
+      Runtime: python3.12
+      Architectures:
+        - arm64
+      Handler: index.handler
+      Role: !GetAtt RelayFunctionRole.Arn
+      Timeout: 30
+      MemorySize: 128
+      Environment:
+        Variables:
+          VENDISTRI_ENDPOINT: !Ref VendistriEndpoint
+          VENDISTRI_USERNAME: !Ref VendistriTransportUsername
+          VENDISTRI_PASSWORD: !Ref VendistriTransportPassword
+      Code:
+        ZipFile: |
+          import base64
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          ENDPOINT = os.environ["VENDISTRI_ENDPOINT"]
+          USERNAME = os.environ["VENDISTRI_USERNAME"]
+          PASSWORD = os.environ["VENDISTRI_PASSWORD"]
+
+          def post_message(message):
+              body = json.dumps({"messages": [message]}).encode("utf-8")
+              token = base64.b64encode(f"{USERNAME}:{PASSWORD}".encode("utf-8")).decode("ascii")
+              request = urllib.request.Request(
+                  ENDPOINT,
+                  data=body,
+                  method="POST",
+                  headers={
+                      "Authorization": f"Basic {token}",
+                      "Content-Type": "application/json",
+                  },
+              )
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  if response.status < 200 or response.status >= 300:
+                      raise RuntimeError(f"Vendistri returned HTTP {response.status}")
+                  return response.read()
+
+          def parse_record_body(body):
+              payload = json.loads(body)
+              if isinstance(payload, dict) and "Message" in payload:
+                  nested = payload["Message"]
+                  if isinstance(nested, str):
+                      return json.loads(nested)
+                  return nested
+              return payload
+
+          def handler(event, context):
+              failures = []
+              for record in event.get("Records", []):
+                  message_id = record.get("messageId")
+                  try:
+                      post_message(parse_record_body(record.get("body", "{}")))
+                  except Exception as exc:
+                      print(f"Failed to relay SQS message {message_id}: {exc}")
+                      failures.append({"itemIdentifier": message_id})
+              return {"batchItemFailures": failures}
+
+  RelayEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt TransactionQueue.Arn
+      FunctionName: !Ref RelayFunction
+      BatchSize: 10
+      MaximumBatchingWindowInSeconds: 5
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      Enabled: true
+
+Outputs:
+  NayaxQueueUrl:
+    Description: Queue URL to enter in Nayax Core.
+    Value: !Ref TransactionQueue
+  NayaxAccessKeyId:
+    Description: Access Key ID to enter in Nayax Core.
+    Value: !Ref NayaxSendAccessKey
+  NayaxSecretAccessKey:
+    Description: Secret Access Key to enter in Nayax Core. Store securely.
+    Value: !GetAtt NayaxSendAccessKey.SecretAccessKey
+  AwsRegion:
+    Description: AWS region for this queue.
+    Value: !Ref AWS::Region
+  DeadLetterQueueUrl:
+    Description: Queue that receives messages after repeated relay failures.
+    Value: !Ref DeadLetterQueue
