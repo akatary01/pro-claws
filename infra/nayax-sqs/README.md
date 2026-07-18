@@ -5,7 +5,7 @@ This stack creates the AWS pieces needed for Nayax real-time transaction deliver
 - Standard SQS queue for Nayax transaction messages
 - Standard SQS dead-letter queue
 - Limited IAM user/access key for Nayax to send to that queue
-- Lambda relay that reads SQS and posts each Nayax transaction JSON to Vendistri
+- Lambda relay that reads SQS and forwards each Nayax transaction to Vendistri's internal telemetry queue
 
 This stack is intended to be deployed once per Nayax telemetry connection while the integration is new. That keeps credentials and routing isolated.
 
@@ -16,8 +16,8 @@ Create or identify the Vendistri Nayax telemetry provider row for the customer/o
 You need:
 
 - `VendistriTransportUsername`: Vendistri telemetry provider ID
-- `VendistriTransportPassword`: transport secret/API key for that provider
-- `VendistriEndpoint`: usually `https://secure.vendistri.com/vendistri/be/telemetry/transport/nayax/sqs`
+- `VendistriTelemetryQueueUrl`: internal Vendistri telemetry queue URL
+- `VendistriTelemetryQueueArn`: internal Vendistri telemetry queue ARN
 
 ## Deploy In AWS Console
 
@@ -29,9 +29,9 @@ You need:
 6. Stack name example: `vendistri-nayax-sqs-customer-name`.
 7. Fill parameters:
    - `QueueName`: unique queue name, for example `vendistri-nayax-transactions-customer-name`
-   - `VendistriEndpoint`
    - `VendistriTransportUsername`
-   - `VendistriTransportPassword`
+   - `VendistriTelemetryQueueUrl`
+   - `VendistriTelemetryQueueArn`
 8. Acknowledge IAM resource creation.
 9. Create stack.
 
@@ -82,13 +82,14 @@ Select product/transaction fields, including:
 
 ```text
 Nayax Core
-  -> SQS queue
+  -> customer SQS queue
   -> Lambda relay
-  -> Vendistri /telemetry/transport/nayax/sqs
+  -> internal Vendistri telemetry queue
+  -> Vendistri telemetry intake + worker
   -> MachineSale / MachineSaleLine / InventoryMovement
 ```
 
-The Lambda sends one Vendistri request per SQS message and reports per-message failures to SQS. Failed messages retry and eventually move to the DLQ.
+The Lambda sends one internal queue message per SQS message and reports per-message failures to SQS. Failed messages retry and eventually move to the DLQ. Customer queue URLs and credentials do not change.
 
 ## Security Notes
 

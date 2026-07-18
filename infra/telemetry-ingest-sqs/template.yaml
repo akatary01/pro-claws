@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Vendistri internal durable telemetry ingestion queue.
+
+Resources:
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: vendistri-telemetry-ingest-dlq
+      MessageRetentionPeriod: 1209600
+
+  TelemetryIngestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: vendistri-telemetry-ingest
+      VisibilityTimeout: 180
+      MessageRetentionPeriod: 1209600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 8
+
+Outputs:
+  QueueUrl:
+    Value: !Ref TelemetryIngestQueue
+  QueueArn:
+    Value: !GetAtt TelemetryIngestQueue.Arn
+  DeadLetterQueueUrl:
+    Value: !Ref DeadLetterQueue

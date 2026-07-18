@@ -6,17 +6,15 @@ Parameters:
     Type: String
     Default: vendistri-nayax-transactions
     Description: Unique SQS queue name for this Nayax telemetry connection.
-  VendistriEndpoint:
-    Type: String
-    Default: https://secure.vendistri.com/vendistri/be/telemetry/transport/nayax/sqs
-    Description: Vendistri Nayax SQS transport endpoint.
   VendistriTransportUsername:
     Type: String
     Description: Vendistri telemetry provider ID used as Basic Auth username.
-  VendistriTransportPassword:
+  VendistriTelemetryQueueUrl:
     Type: String
-    NoEcho: true
-    Description: Vendistri transport secret/API key used as Basic Auth password.
+    Description: URL of the internal Vendistri telemetry ingestion queue.
+  VendistriTelemetryQueueArn:
+    Type: String
+    Description: ARN of the internal Vendistri telemetry ingestion queue.
 
 Resources:
   DeadLetterQueue:
@@ -80,6 +78,13 @@ Resources:
                   - sqs:GetQueueAttributes
                   - sqs:ChangeMessageVisibility
                 Resource: !GetAtt TransactionQueue.Arn
+        - PolicyName: relay-send-to-vendistri-telemetry
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !Ref VendistriTelemetryQueueArn
 
   RelayFunction:
     Type: AWS::Lambda::Function
@@ -94,37 +99,23 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          VENDISTRI_ENDPOINT: !Ref VendistriEndpoint
           VENDISTRI_USERNAME: !Ref VendistriTransportUsername
-          VENDISTRI_PASSWORD: !Ref VendistriTransportPassword
+          VENDISTRI_TELEMETRY_QUEUE_URL: !Ref VendistriTelemetryQueueUrl
       Code:
         ZipFile: |
-          import base64
+          import boto3
           import json
           import os
-          import urllib.error
-          import urllib.request
 
-          ENDPOINT = os.environ["VENDISTRI_ENDPOINT"]
           USERNAME = os.environ["VENDISTRI_USERNAME"]
-          PASSWORD = os.environ["VENDISTRI_PASSWORD"]
+          TELEMETRY_QUEUE_URL = os.environ["VENDISTRI_TELEMETRY_QUEUE_URL"]
+          SQS = boto3.client("sqs")
 
-          def post_message(message):
-              body = json.dumps({"messages": [message]}).encode("utf-8")
-              token = base64.b64encode(f"{USERNAME}:{PASSWORD}".encode("utf-8")).decode("ascii")
-              request = urllib.request.Request(
-                  ENDPOINT,
-                  data=body,
-                  method="POST",
-                  headers={
-                      "Authorization": f"Basic {token}",
-                      "Content-Type": "application/json",
-                  },
+          def forward_message(message):
+              SQS.send_message(
+                  QueueUrl=TELEMETRY_QUEUE_URL,
+                  MessageBody=json.dumps({"telemetryId": USERNAME, "message": message}),
               )
-              with urllib.request.urlopen(request, timeout=20) as response:
-                  if response.status < 200 or response.status >= 300:
-                      raise RuntimeError(f"Vendistri returned HTTP {response.status}")
-                  return response.read()
 
           def parse_record_body(body):
               payload = json.loads(body)
@@ -140,7 +131,7 @@ Resources:
               for record in event.get("Records", []):
                   message_id = record.get("messageId")
                   try:
-                      post_message(parse_record_body(record.get("body", "{}")))
+                      forward_message(parse_record_body(record.get("body", "{}")))
                   except Exception as exc:
                       print(f"Failed to relay SQS message {message_id}: {exc}")
                       failures.append({"itemIdentifier": message_id})
