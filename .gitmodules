@@ -10,3 +10,6 @@
 [submodule "home_page"]
 	path = home_page
 	url = https://github.com/pro-claws/home-page.git
+[submodule "marketplace"]
+	path = marketplace
+	url = https://github.com/pro-claws/marketplace.git
