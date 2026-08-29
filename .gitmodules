@@ -13,3 +13,6 @@
 [submodule "marketplace"]
 	path = marketplace
 	url = https://github.com/pro-claws/marketplace.git
+[submodule "ui"]
+	path = ui
+	url = https://github.com/pro-claws/vendistri-ui.git
